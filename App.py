@@ -82,8 +82,8 @@ if menu == "📊 Dashboard e Indicadores":
     total_invertido = cursor.fetchone()[0] or 0.0
     
     cursor.execute("SELECT SUM(transporte_compra), SUM(transporte_venta) FROM animales")
-    fletes_compra_total, fletes_venta_total = cursor.fetchone()
-    total_transportes = (fletes_compra_total or 0.0) + (fletes_venta_total or 0.0)
+    fletes_c_todo, fletes_v_todo = cursor.fetchone()
+    total_transportes_general = (fletes_c_todo or 0.0) + (fletes_v_todo or 0.0)
     
     cursor.execute("SELECT SUM(precio_venta) FROM animales WHERE estado = 'Vendido'")
     ingresos_ventas = cursor.fetchone()[0] or 0.0
@@ -99,8 +99,9 @@ if menu == "📊 Dashboard e Indicadores":
     socios = cursor.fetchall()
     conexion.close()
 
-    # Cálculo de Reconocimiento a la Socia Principal
-    reconocimiento_socia = vendidos * 10000.0
+    # Cálculo de reconocimiento de fletes por animal vendido (10k para cada socio)
+    reconocimiento_flete_socio1 = vendidos * 10000.0
+    reconocimiento_flete_socio2 = vendidos * 10000.0
 
     # Sección 1: Estado Actual
     st.subheader("🐄 Estado Actual")
@@ -115,33 +116,32 @@ if menu == "📊 Dashboard e Indicadores":
     st.subheader("💰 Rendimiento Comercial y Transportes")
     col4, col5, col6 = st.columns(3)
     col4.metric("Ingresos Totales por Ventas", f"₡{ingresos_ventas:,.2f}", "Ventas más flete de salida")
-    col5.metric("Línea de Transportes (Fletes)", f"₡{total_transportes:,.2f}", "Acumulado de transporte de compra y venta")
+    col5.metric("Línea de Transportes (Fletes)", f"₡{total_transportes_general:,.2f}", "Acumulado de transporte de compra y venta")
     col6.metric("Ganancia Neta (Aumento)", f"₡{ganancia_total_ventas:,.2f}", "Incremento neto con fletes incluidos")
 
     st.markdown("---")
     
     # Sección 3: Liquidación y Reparto entre Socios
     st.subheader("👥 Liquidación y Reparto entre Socios")
-    st.markdown("Devolución de capital, separación de transportes, reconocimiento especial a la socia principal y distribución del aumento (45% y 55%):")
-
-    capital_a_retornar = total_invertido
+    st.markdown("Devolución de capital, reconocimiento de ₡10,000 de flete para cada socio, y distribución del aumento (45% y 55%):")
 
     s_col1, s_col2 = st.columns(2)
     for nombre, porcentaje in socios:
         ganancia_socio = ganancia_total_ventas * (porcentaje / 100.0)
         
         if "Principal" in nombre:
-            monto_total_socio = capital_a_retornar + ganancia_socio + reconocimiento_socia
+            monto_total_socio = ganancia_socio + reconocimiento_flete_socio1
             s_col1.metric(
                 f"Socia: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Incluye capital + ganancia (₡{ganancia_socio:,.2f}) + Reconocimiento (₡{reconocimiento_socia:,.2f})"
+                f"Ganancia (₡{ganancia_socio:,.2f}) + Reconocimiento Flete (₡{reconocimiento_flete_socio1:,.2f})"
             )
         else:
+            monto_total_socio = ganancia_socio + reconocimiento_flete_socio2
             s_col2.metric(
                 f"Socio: {nombre} ({porcentaje}%)", 
-                f"₡{ganancia_socio:,.2f}", 
-                f"Participación del {porcentaje}% de la ganancia"
+                f"₡{monto_total_socio:,.2f}", 
+                f"Ganancia (₡{ganancia_socio:,.2f}) + Reconocimiento Flete (₡{reconocimiento_flete_socio2:,.2f})"
             )
 
 # --- 2. REGISTRAR COMPRA ---
