@@ -20,23 +20,23 @@ def inicializar_base_datos():
             fecha_compra TEXT NOT NULL,
             peso_compra REAL NOT NULL,
             precio_kilo_compra REAL NOT NULL,
-            transporte_compra REAL DEFAULT 0.0,
+            transporte_compra REAL DEFAULT 10000.0,
             precio_compra REAL NOT NULL,
             estado TEXT DEFAULT 'En engorde',
             fecha_venta TEXT,
             peso_venta REAL,
             precio_kilo_venta REAL,
-            transporte_venta REAL DEFAULT 0.0,
+            transporte_venta REAL DEFAULT 10000.0,
             precio_venta REAL
         )
     """)
     # Asegurar compatibilidad si la base de datos ya existía sin columnas de transporte
     try:
-        cursor.execute("ALTER TABLE animales ADD COLUMN transporte_compra REAL DEFAULT 0.0")
+        cursor.execute("ALTER TABLE animales ADD COLUMN transporte_compra REAL DEFAULT 10000.0")
     except sqlite3.OperationalError:
         pass
     try:
-        cursor.execute("ALTER TABLE animales ADD COLUMN transporte_venta REAL DEFAULT 0.0")
+        cursor.execute("ALTER TABLE animales ADD COLUMN transporte_venta REAL DEFAULT 10000.0")
     except sqlite3.OperationalError:
         pass
 
@@ -88,7 +88,7 @@ if menu == "📊 Dashboard e Indicadores":
     cursor.execute("SELECT SUM(precio_venta) FROM animales WHERE estado = 'Vendido'")
     ingresos_ventas = cursor.fetchone()[0] or 0.0
     
-    # Ganancia total = Venta neta - Inversión total de los animales vendidos
+    # Ganancia total = Venta total (con flete) - Inversión total de los animales vendidos (con flete)
     cursor.execute("""
         SELECT SUM(precio_venta - precio_compra) 
         FROM animales WHERE estado = 'Vendido'
@@ -99,7 +99,7 @@ if menu == "📊 Dashboard e Indicadores":
     socios = cursor.fetchall()
     conexion.close()
 
-    # Cálculo de Reconocimiento a la Socia Principal (ej. 10,000 colones por animal vendido o fijo)
+    # Cálculo de Reconocimiento a la Socia Principal
     reconocimiento_socia = vendidos * 10000.0
 
     # Sección 1: Estado Actual
@@ -114,9 +114,9 @@ if menu == "📊 Dashboard e Indicadores":
     # Sección 2: Rendimiento Comercial y Transportes
     st.subheader("💰 Rendimiento Comercial y Transportes")
     col4, col5, col6 = st.columns(3)
-    col4.metric("Ingresos Netos por Ventas", f"₡{ingresos_ventas:,.2f}", "Ventas menos flete de salida")
+    col4.metric("Ingresos Totales por Ventas", f"₡{ingresos_ventas:,.2f}", "Ventas más flete de salida")
     col5.metric("Línea de Transportes (Fletes)", f"₡{total_transportes:,.2f}", "Acumulado de transporte de compra y venta")
-    col6.metric("Ganancia Neta (Aumento)", f"₡{ganancia_total_ventas:,.2f}", "Incremento obtenido sobre el costo")
+    col6.metric("Ganancia Neta (Aumento)", f"₡{ganancia_total_ventas:,.2f}", "Incremento neto con fletes incluidos")
 
     st.markdown("---")
     
@@ -131,7 +131,6 @@ if menu == "📊 Dashboard e Indicadores":
         ganancia_socio = ganancia_total_ventas * (porcentaje / 100.0)
         
         if "Principal" in nombre:
-            # Al socio principal se le devuelve capital + su % de ganancia + su reconocimiento especial de 10k por animal
             monto_total_socio = capital_a_retornar + ganancia_socio + reconocimiento_socia
             s_col1.metric(
                 f"Socia: {nombre} ({porcentaje}%)", 
@@ -139,7 +138,6 @@ if menu == "📊 Dashboard e Indicadores":
                 f"Incluye capital + ganancia (₡{ganancia_socio:,.2f}) + Reconocimiento (₡{reconocimiento_socia:,.2f})"
             )
         else:
-            # Al socio secundario le corresponde su % de la ganancia
             s_col2.metric(
                 f"Socio: {nombre} ({porcentaje}%)", 
                 f"₡{ganancia_socio:,.2f}", 
@@ -149,21 +147,20 @@ if menu == "📊 Dashboard e Indicadores":
 # --- 2. REGISTRAR COMPRA ---
 elif menu == "📥 Registrar Compra":
     st.title("📥 Registrar Compra de Animal")
-    st.markdown("Ingrese los datos de compra. El costo total *suma* el valor del animal más el transporte (flete de compra).")
+    st.markdown("Ingrese los datos de compra. El costo total *suma* el valor base del animal más el transporte de compra (₡10,000 por defecto).")
 
     with st.form("form_compra", clear_on_submit=True):
         arete = st.text_input("Número de Arete (Identificador único)")
         fecha_compra = st.date_input("Fecha de Adquisición")
         peso_compra = st.number_input("Peso de Compra (kg)", min_value=0.0, format="%.2f")
         precio_kilo_compra = st.number_input("Precio por Kilo de Compra (₡)", min_value=0.0, format="%.2f")
-        transporte_compra = st.number_input("Costo de Transporte / Flete Compra (₡) [Suma]", min_value=0.0, format="%.2f", value=0.0)
+        transporte_compra = st.number_input("Costo de Transporte / Flete Compra (₡) [Suma]", min_value=0.0, format="%.2f", value=10000.0)
         
         submitted = st.form_submit_button("Guardar Registro de Compra")
         if submitted:
             if not arete.strip():
                 st.error("El número de arete no puede estar vacío.")
             else:
-                # Animal + Transporte (ej. 100k + 10k)
                 costo_animal = peso_compra * precio_kilo_compra
                 total_compra = costo_animal + transporte_compra
                 try:
@@ -175,14 +172,14 @@ elif menu == "📥 Registrar Compra":
                     """, (arete.strip(), str(fecha_compra), peso_compra, precio_kilo_compra, transporte_compra, total_compra))
                     conexion.commit()
                     conexion.close()
-                    st.success(f"¡Animal arete {arete} registrado! Costo base: ₡{costo_animal:,.2f} + Flete: ₡{transporte_compra:,.2f} = Total: ₡{total_compra:,.2f}")
+                    st.success(f"¡Animal arete {arete} registrado! Costo base: ₡{costo_animal:,.2f} + Flete: ₡{transporte_compra:,.2f} = Total Entrada: ₡{total_compra:,.2f}")
                 except sqlite3.IntegrityError:
                     st.error("¡Error! Ya existe un animal registrado con ese mismo número de arete.")
 
 # --- 3. REGISTRAR VENTA ---
 elif menu == "📤 Registrar Venta":
     st.title("📤 Registrar Venta de Animal")
-    st.markdown("Seleccione el arete, ingrese los datos de venta y el transporte de salida (flete) que se *resta*.")
+    st.markdown("Seleccione el arete, ingrese los datos de venta y el transporte de salida (flete) que se *suma* al total de salida.")
     
     conexion = sqlite3.connect("ganaderia.db")
     cursor = conexion.cursor()
@@ -198,13 +195,12 @@ elif menu == "📤 Registrar Venta":
             fecha_venta = st.date_input("Fecha de Venta")
             peso_venta = st.number_input("Peso de Venta (kg)", min_value=0.0, format="%.2f")
             precio_kilo_venta = st.number_input("Precio por Kilo de Venta (₡)", min_value=0.0, format="%.2f")
-            transporte_venta = st.number_input("Costo de Transporte / Flete Venta (₡) [Resta]", min_value=0.0, format="%.2f", value=0.0)
+            transporte_venta = st.number_input("Costo de Transporte / Flete Venta (₡) [Suma]", min_value=0.0, format="%.2f", value=10000.0)
             
             submitted_v = st.form_submit_button("Procesar Venta")
             if submitted_v:
-                # Venta bruta - Transporte (ej. 100k - 10k)
                 bruto_venta = peso_venta * precio_kilo_venta
-                total_venta = bruto_venta - transporte_venta
+                total_venta = bruto_venta + transporte_venta
                 conexion = sqlite3.connect("ganaderia.db")
                 cursor = conexion.cursor()
                 cursor.execute("""
@@ -214,7 +210,7 @@ elif menu == "📤 Registrar Venta":
                 """, (str(fecha_venta), peso_venta, precio_kilo_venta, transporte_venta, total_venta, arete_seleccionado))
                 conexion.commit()
                 conexion.close()
-                st.success(f"¡Venta procesada para el arete {arete_seleccionado}! Bruto: ₡{bruto_venta:,.2f} - Flete: ₡{transporte_venta:,.2f} = Neto Venta: ₡{total_venta:,.2f}")
+                st.success(f"¡Venta procesada para el arete {arete_seleccionado}! Bruto: ₡{bruto_venta:,.2f} + Flete: ₡{transporte_venta:,.2f} = Total Salida: ₡{total_venta:,.2f}")
 
 # --- 4. INVENTARIO GENERAL ---
 elif menu == "📋 Inventario General":
@@ -232,7 +228,7 @@ elif menu == "📋 Inventario General":
     else:
         df = pd.DataFrame(filas, columns=[
             "Arete", "Estado", "F. Compra", "Peso Compra", "₡/kg Compra", "Flete Compra", "Total Compra",
-            "F. Venta", "Peso Venta", "₡/kg Venta", "Flete Venta", "Neto Venta"
+            "F. Venta", "Peso Venta", "₡/kg Venta", "Flete Venta", "Total Venta"
         ])
         st.dataframe(df, use_container_width=True)
 
