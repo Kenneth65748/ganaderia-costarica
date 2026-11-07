@@ -99,6 +99,13 @@ if menu == "📊 Dashboard e Indicadores":
     cursor.execute("SELECT SUM(precio_compra - transporte_compra) FROM animales")
     capital_base_animales = cursor.fetchone()[0] or 0.0
 
+    # Fletes específicos de animales vendidos para devolución por socio
+    cursor.execute("SELECT SUM(transporte_compra) FROM animales WHERE estado = 'Vendido'")
+    flete_compra_vendidos = cursor.fetchone()[0] or 0.0
+
+    cursor.execute("SELECT SUM(transporte_venta) FROM animales WHERE estado = 'Vendido'")
+    flete_venta_vendidos = cursor.fetchone()[0] or 0.0
+
     cursor.execute("SELECT nombre, porcentaje FROM socios")
     socios = cursor.fetchall()
     conexion.close()
@@ -123,27 +130,27 @@ if menu == "📊 Dashboard e Indicadores":
     
     # Sección 3: Liquidación y Reparto entre Socios
     st.subheader("👥 Liquidación y Reparto entre Socios")
-    st.markdown("Devolución de capital base exclusiva para el socio principal y distribución de la ganancia neta (45% y 55%):")
+    st.markdown("Devolución de capital base y flete de compra para el socio principal, flete de venta para el socio secundario, y distribución de la ganancia neta (45% y 55%):")
 
     s_col1, s_col2 = st.columns(2)
     for nombre, porcentaje in socios:
         ganancia_socio = ganancia_total_ventas * (porcentaje / 100.0)
         
         if "Principal" in nombre:
-            # El socio principal recibe el capital base puro del animal + su parte de la ganancia
-            monto_total_socio = capital_base_animales + ganancia_socio
+            # El socio principal recibe capital base + su parte de ganancia + su flete de compra pagado
+            monto_total_socio = capital_base_animales + ganancia_socio + flete_compra_vendidos
             s_col1.metric(
                 f"Socia: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Capital (₡{capital_base_animales:,.2f}) + Ganancia (₡{ganancia_socio:,.2f})"
+                f"Capital (₡{capital_base_animales:,.2f}) + Ganancia (₡{ganancia_socio:,.2f}) + Flete Compra (₡{flete_compra_vendidos:,.2f})"
             )
         else:
-            # El socio secundario recibe únicamente su parte de la ganancia
-            monto_total_socio = ganancia_socio
+            # El socio secundario recibe su parte de ganancia + su flete de venta pagado
+            monto_total_socio = ganancia_socio + flete_venta_vendidos
             s_col2.metric(
                 f"Socio: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Ganancia (₡{ganancia_socio:,.2f})"
+                f"Ganancia (₡{ganancia_socio:,.2f}) + Flete Venta (₡{flete_venta_vendidos:,.2f})"
             )
 
 # --- 2. REGISTRAR COMPRA ---
