@@ -95,6 +95,10 @@ if menu == "📊 Dashboard e Indicadores":
     """)
     ganancia_total_ventas = cursor.fetchone()[0] or 0.0
 
+    # Capital base puro de los animales (precio_compra total menos el transporte de compra para evitar duplicar el flete)
+    cursor.execute("SELECT SUM(precio_compra - transporte_compra) FROM animales")
+    capital_base_animales = cursor.fetchone()[0] or 0.0
+
     cursor.execute("SELECT nombre, porcentaje FROM socios")
     socios = cursor.fetchall()
     conexion.close()
@@ -123,31 +127,33 @@ if menu == "📊 Dashboard e Indicadores":
     
     # Sección 3: Liquidación y Reparto entre Socios
     st.subheader("👥 Liquidación y Reparto entre Socios")
-    st.markdown("Devolución de capital, reconocimiento de ₡10,000 de flete para cada socio, y distribución del aumento (45% y 55%):")
+    st.markdown("Devolución de capital base exclusiva para el socio principal, reconocimiento de ₡10,000 de flete para cada uno, y distribución del aumento (45% y 55%):")
 
     s_col1, s_col2 = st.columns(2)
     for nombre, porcentaje in socios:
         ganancia_socio = ganancia_total_ventas * (porcentaje / 100.0)
         
         if "Principal" in nombre:
-            monto_total_socio = ganancia_socio + reconocimiento_flete_socio1
+            # El socio principal recibe el capital base puro del animal + su ganancia + su flete
+            monto_total_socio = capital_base_animales + ganancia_socio + reconocimiento_flete_socio1
             s_col1.metric(
                 f"Socia: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Ganancia (₡{ganancia_socio:,.2f}) + Reconocimiento Flete (₡{reconocimiento_flete_socio1:,.2f})"
+                f"Capital (₡{capital_base_animales:,.2f}) + Ganancia (₡{ganancia_socio:,.2f}) + Flete (₡{reconocimiento_flete_socio1:,.2f})"
             )
         else:
+            # El socio secundario NO recibe capital, solo su ganancia y su flete
             monto_total_socio = ganancia_socio + reconocimiento_flete_socio2
             s_col2.metric(
                 f"Socio: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Ganancia (₡{ganancia_socio:,.2f}) + Reconocimiento Flete (₡{reconocimiento_flete_socio2:,.2f})"
+                f"Ganancia (₡{ganancia_socio:,.2f}) + Flete (₡{reconocimiento_flete_socio2:,.2f})"
             )
 
 # --- 2. REGISTRAR COMPRA ---
 elif menu == "📥 Registrar Compra":
     st.title("📥 Registrar Compra de Animal")
-    st.markdown("Ingrese los datos de compra. El costo total *suma* el valor base del animal más el transporte de compra (₡10,000 por defecto).")
+    st.markdown("Ingrese los datos de compra. El costo total suma el valor base del animal más el transporte de compra (₡10,000 por defecto).")
 
     with st.form("form_compra", clear_on_submit=True):
         arete = st.text_input("Número de Arete (Identificador único)")
@@ -179,7 +185,7 @@ elif menu == "📥 Registrar Compra":
 # --- 3. REGISTRAR VENTA ---
 elif menu == "📤 Registrar Venta":
     st.title("📤 Registrar Venta de Animal")
-    st.markdown("Seleccione el arete, ingrese los datos de venta y el transporte de salida (flete) que se *suma* al total de salida.")
+    st.markdown("Seleccione el arete, ingrese los datos de venta y el transporte de salida (flete) que se suma al total de salida.")
     
     conexion = sqlite3.connect("ganaderia.db")
     cursor = conexion.cursor()
