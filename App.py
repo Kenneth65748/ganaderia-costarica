@@ -95,17 +95,13 @@ if menu == "📊 Dashboard e Indicadores":
     """)
     ganancia_total_ventas = cursor.fetchone()[0] or 0.0
 
-    # Capital base puro de los animales (precio_compra total menos el transporte de compra para evitar duplicar el flete)
+    # Capital base puro de los animales (precio_compra total menos el transporte de compra)
     cursor.execute("SELECT SUM(precio_compra - transporte_compra) FROM animales")
     capital_base_animales = cursor.fetchone()[0] or 0.0
 
     cursor.execute("SELECT nombre, porcentaje FROM socios")
     socios = cursor.fetchall()
     conexion.close()
-
-    # Cálculo de reconocimiento de fletes por animal vendido (10k para cada socio)
-    reconocimiento_flete_socio1 = vendidos * 10000.0
-    reconocimiento_flete_socio2 = vendidos * 10000.0
 
     # Sección 1: Estado Actual
     st.subheader("🐄 Estado Actual")
@@ -127,27 +123,27 @@ if menu == "📊 Dashboard e Indicadores":
     
     # Sección 3: Liquidación y Reparto entre Socios
     st.subheader("👥 Liquidación y Reparto entre Socios")
-    st.markdown("Devolución de capital base exclusiva para el socio principal, reconocimiento de ₡10,000 de flete para cada uno, y distribución del aumento (45% y 55%):")
+    st.markdown("Devolución de capital base exclusiva para el socio principal y distribución de la ganancia neta (45% y 55%):")
 
     s_col1, s_col2 = st.columns(2)
     for nombre, porcentaje in socios:
         ganancia_socio = ganancia_total_ventas * (porcentaje / 100.0)
         
         if "Principal" in nombre:
-            # El socio principal recibe el capital base puro del animal + su ganancia + su flete
-            monto_total_socio = capital_base_animales + ganancia_socio + reconocimiento_flete_socio1
+            # El socio principal recibe el capital base puro del animal + su parte de la ganancia
+            monto_total_socio = capital_base_animales + ganancia_socio
             s_col1.metric(
                 f"Socia: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Capital (₡{capital_base_animales:,.2f}) + Ganancia (₡{ganancia_socio:,.2f}) + Flete (₡{reconocimiento_flete_socio1:,.2f})"
+                f"Capital (₡{capital_base_animales:,.2f}) + Ganancia (₡{ganancia_socio:,.2f})"
             )
         else:
-            # El socio secundario NO recibe capital, solo su ganancia y su flete
-            monto_total_socio = ganancia_socio + reconocimiento_flete_socio2
+            # El socio secundario recibe únicamente su parte de la ganancia
+            monto_total_socio = ganancia_socio
             s_col2.metric(
                 f"Socio: {nombre} ({porcentaje}%)", 
                 f"₡{monto_total_socio:,.2f}", 
-                f"Ganancia (₡{ganancia_socio:,.2f}) + Flete (₡{reconocimiento_flete_socio2:,.2f})"
+                f"Ganancia (₡{ganancia_socio:,.2f})"
             )
 
 # --- 2. REGISTRAR COMPRA ---
