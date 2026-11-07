@@ -9,6 +9,29 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- ESTILO DE FONDO PERSONALIZADO ---
+st.markdown(
+    """
+    <style>
+    /* Imagen de fondo para toda la aplicación */
+    .stApp {
+        background-image: url("https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=1920&auto=format&fit=crop");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    /* Fondo semitransparente en los contenedores para que las letras y números resalten perfectamente */
+    .block-container {
+        background-color: rgba(15, 23, 42, 0.88);
+        padding: 2rem;
+        border-radius: 15px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Inicializar Base de Datos con columnas de transporte
 def inicializar_base_datos():
     conexion = sqlite3.connect("ganaderia.db")
@@ -137,7 +160,6 @@ if menu == "📊 Dashboard e Indicadores":
         ganancia_socio = ganancia_total_ventas * (porcentaje / 100.0)
         
         if "Principal" in nombre:
-            # El socio principal recibe capital base + su parte de ganancia + su flete de compra pagado
             monto_total_socio = capital_base_animales + ganancia_socio + flete_compra_vendidos
             s_col1.metric(
                 f"Socia: {nombre} ({porcentaje}%)", 
@@ -145,7 +167,6 @@ if menu == "📊 Dashboard e Indicadores":
                 f"Capital (₡{capital_base_animales:,.2f}) + Ganancia (₡{ganancia_socio:,.2f}) + Flete Compra (₡{flete_compra_vendidos:,.2f})"
             )
         else:
-            # El socio secundario recibe su parte de ganancia + su flete de venta pagado
             monto_total_socio = ganancia_socio + flete_venta_vendidos
             s_col2.metric(
                 f"Socio: {nombre} ({porcentaje}%)", 
