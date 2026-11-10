@@ -235,7 +235,7 @@ def _crear_respaldo():
         con = _sqlite3_real.connect(ruta)
         con.execute(_SQL_ANIMALES)
         con.execute(_SQL_SOCIOS)
-        marcas = ". ".join("?" for _ in _COLUMNAS_ANIMALES)
+        marcas = ", ".join("?" for _ in _COLUMNAS_ANIMALES)
         con.executemany(
             "INSERT INTO animales (" + ", ".join(_COLUMNAS_ANIMALES) + ") VALUES (" + marcas + ")",
             animales,
