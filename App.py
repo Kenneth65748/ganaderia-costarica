@@ -235,7 +235,7 @@ def _crear_respaldo():
         con = _sqlite3_real.connect(ruta)
         con.execute(_SQL_ANIMALES)
         con.execute(_SQL_SOCIOS)
-        marcas = ", ".join("?" for _ in _COLUMNAS_ANIMALES)
+        marcas = ". ".join("?" for _ in _COLUMNAS_ANIMALES)
         con.executemany(
             "INSERT INTO animales (" + ", ".join(_COLUMNAS_ANIMALES) + ") VALUES (" + marcas + ")",
             animales,
@@ -243,8 +243,8 @@ def _crear_respaldo():
         con.executemany("INSERT INTO socios (id, nombre, porcentaje) VALUES (?, ?, ?)", socios)
         con.commit()
         con.close()
-        with open(ruta, "rb") as f:
-            return f.read()
+        with open(ruta, "rb") as f:  # <-- Asegúrate de usar 'f' aquí
+            return f.read()         # <-- Y 'f.read()' aquí
 # =====================================================================
 # FIN DEL ADAPTADOR. Desde aquí, el código original sin cambios.
 # =====================================================================
@@ -553,3 +553,4 @@ elif menu == "🗑️ Eliminar / Corregir":
             conexion.close()
             st.success(f"¡El registro del arete {arete_a_borrar} ha sido eliminado permanentemente!")
             st.rerun()
+    
