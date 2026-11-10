@@ -97,7 +97,7 @@ def _enviar(sentencias):
 
 
 class _Cursor:
-    def _init_(self):
+    def __init__(self):
         self._filas = []
         self._pos = 0
         self.description = None
@@ -192,7 +192,7 @@ def _migrar_datos_iniciales():
     hecho = _enviar([("SELECT COUNT(*) FROM _migracion WHERE clave = ?", ("ganaderia.db",))])[0][1][0][0]
     if hecho:
         return
-    ruta = os.path.join(os.path.dirname(os.path.abspath(_file_)), "ganaderia.db")
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ganaderia.db")
     if os.path.exists(ruta):
         filas, nombres = [], []
         con = _sqlite3_real.connect(ruta)
@@ -553,4 +553,3 @@ elif menu == "🗑️ Eliminar / Corregir":
             conexion.close()
             st.success(f"¡El registro del arete {arete_a_borrar} ha sido eliminado permanentemente!")
             st.rerun()
-    
