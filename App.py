@@ -367,11 +367,20 @@ if st.session_state["ver_estadisticas"]:
     st.markdown("Visualización ordenada del rendimiento por arete, peso, fletes y estado del lote.")
 
     conexion = sqlite3.connect("ganaderia.db")
-    df_stats = pd.read_sql_query(
-        "SELECT arete, estado, peso_compra, precio_compra, transporte_compra, peso_venta, precio_venta, transporte_venta FROM animales",
-        conexion
+    cursor = conexion.cursor()
+    cursor.execute(
+        "SELECT arete, estado, peso_compra, precio_compra, transporte_compra, peso_venta, precio_venta, transporte_venta FROM animales"
     )
+    filas_stats = cursor.fetchall()
     conexion.close()
+
+    df_stats = pd.DataFrame(
+        filas_stats,
+        columns=[
+            "arete", "estado", "peso_compra", "precio_compra",
+            "transporte_compra", "peso_venta", "precio_venta", "transporte_venta"
+        ]
+    )
 
     if df_stats.empty:
         st.info("Aún no hay animales registrados para mostrar gráficos.")
@@ -379,7 +388,7 @@ if st.session_state["ver_estadisticas"]:
         df_stats["arete_str"] = df_stats["arete"].astype(str)
         df_vendidos = df_stats[df_stats["estado"] == "Vendido"].copy()
 
-        # Fila 1: Estado del inventario y Peso / Inversión por arete
+        # Fila 1: Estado del inventario y Peso de compra por arete
         g_col1, g_col2 = st.columns(2)
 
         with g_col1:
@@ -393,7 +402,7 @@ if st.session_state["ver_estadisticas"]:
 
         st.markdown("")
 
-        # Fila 2: Inversión total por arete y estadísticas de animales vendidos
+        # Fila 2: Inversión total por arete y Kilos ganados en animales vendidos
         g_col3, g_col4 = st.columns(2)
 
         with g_col3:
