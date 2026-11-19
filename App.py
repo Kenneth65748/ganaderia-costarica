@@ -97,7 +97,7 @@ def _enviar(sentencias):
 
 
 class _Cursor:
-    def __init__(self):
+    def _init_(self):
         self._filas = []
         self._pos = 0
         self.description = None
@@ -192,7 +192,7 @@ def _migrar_datos_iniciales():
     hecho = _enviar([("SELECT COUNT(*) FROM _migracion WHERE clave = ?", ("ganaderia.db",))])[0][1][0][0]
     if hecho:
         return
-    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ganaderia.db")
+    ruta = os.path.join(os.path.dirname(os.path.abspath(_file_)), "ganaderia.db")
     if os.path.exists(ruta):
         filas, nombres = [], []
         con = _sqlite3_real.connect(ruta)
@@ -243,8 +243,8 @@ def _crear_respaldo():
         con.executemany("INSERT INTO socios (id, nombre, porcentaje) VALUES (?, ?, ?)", socios)
         con.commit()
         con.close()
-        with open(ruta, "rb") as f:  # <-- Asegúrate de usar 'f' aquí
-            return f.read()         # <-- Y 'f.read()' aquí
+        with open(ruta, "rb") as f:
+            return f.read()
 # =====================================================================
 # FIN DEL ADAPTADOR. Desde aquí, el código original sin cambios.
 # =====================================================================
@@ -353,6 +353,79 @@ with st.sidebar.expander("💾 Respaldo de datos"):
             file_name=f"ganaderia_respaldo_{st.session_state['respaldo_fecha']}.db",
             mime="application/octet-stream",
         )
+
+# --- BOTÓN VER ESTADÍSTICAS DEBAJO DE RESPALDO DE DATOS (AGREGADO) ---
+if "ver_estadisticas" not in st.session_state:
+    st.session_state["ver_estadisticas"] = False
+
+if st.sidebar.button("📈 Ver estadísticas", use_container_width=True):
+    st.session_state["ver_estadisticas"] = not st.session_state["ver_estadisticas"]
+
+if st.session_state["ver_estadisticas"]:
+    st.markdown("---")
+    st.title("📈 Panel de Estadísticas del Engorde")
+    st.markdown("Visualización ordenada del rendimiento por arete, peso, fletes y estado del lote.")
+
+    conexion = sqlite3.connect("ganaderia.db")
+    df_stats = pd.read_sql_query(
+        "SELECT arete, estado, peso_compra, precio_compra, transporte_compra, peso_venta, precio_venta, transporte_venta FROM animales",
+        conexion
+    )
+    conexion.close()
+
+    if df_stats.empty:
+        st.info("Aún no hay animales registrados para mostrar gráficos.")
+    else:
+        df_stats["arete_str"] = df_stats["arete"].astype(str)
+        df_vendidos = df_stats[df_stats["estado"] == "Vendido"].copy()
+
+        # Fila 1: Estado del inventario y Peso / Inversión por arete
+        g_col1, g_col2 = st.columns(2)
+
+        with g_col1:
+            st.subheader("🐄 Estado del Inventario")
+            conteo_estado = df_stats["estado"].value_counts()
+            st.bar_chart(conteo_estado)
+
+        with g_col2:
+            st.subheader("⚖️ Peso de Compra por Arete (kg)")
+            st.bar_chart(df_stats.set_index("arete_str")["peso_compra"])
+
+        st.markdown("")
+
+        # Fila 2: Inversión total por arete y estadísticas de animales vendidos
+        g_col3, g_col4 = st.columns(2)
+
+        with g_col3:
+            st.subheader("💵 Inversión Total por Arete (₡)")
+            st.bar_chart(df_stats.set_index("arete_str")["precio_compra"])
+
+        with g_col4:
+            st.subheader("🥩 Kilos Ganados por Arete Vendido (kg)")
+            if not df_vendidos.empty:
+                df_vendidos["kilos_ganados"] = df_vendidos["peso_venta"] - df_vendidos["peso_compra"]
+                st.bar_chart(df_vendidos.set_index("arete_str")["kilos_ganados"])
+            else:
+                st.info("Se activará en cuanto registres al menos un animal vendido.")
+
+        if not df_vendidos.empty:
+            st.markdown("")
+            g_col5, g_col6 = st.columns(2)
+            df_vendidos["ganancia_neta"] = df_vendidos["precio_venta"] - df_vendidos["precio_compra"]
+            df_vendidos["flete_total"] = (
+                df_vendidos["transporte_compra"].fillna(0)
+                + df_vendidos["transporte_venta"].fillna(0)
+            )
+
+            with g_col5:
+                st.subheader("💰 Ganancia Neta por Arete Vendido (₡)")
+                st.bar_chart(df_vendidos.set_index("arete_str")["ganancia_neta"])
+
+            with g_col6:
+                st.subheader("🚚 Fletes Totales vs. Ganancia Neta (₡)")
+                st.bar_chart(df_vendidos.set_index("arete_str")[["flete_total", "ganancia_neta"]])
+
+    st.markdown("---")
 
 # --- 1. DASHBOARD ---
 if menu == "📊 Dashboard e Indicadores":
